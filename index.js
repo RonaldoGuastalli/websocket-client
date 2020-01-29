@@ -1,36 +1,25 @@
 #!/usr/bin/env node
 
-var WebSocketClient = require('websocket').client;
-var client = new WebSocketClient();
+var webSocket = new WebSocket('ws://localhost:8090/msg');
 
-client.on('connectFailed', function(error) {
-    console.log('Connect Error: ' + error.toString());
-});
+webSocket.onopen = function (openEvent) {
+    console.log("WebSocket OPEN: " + JSON.stringify(openEvent, null, 4));
+};
+webSocket.onclose = function (closeEvent) {
+    console.log("WebSocket CLOSE: " + JSON.stringify(closeEvent, null, 4));
+    setTimeout(function () { webSocket = new WebSocket('ws://localhost:8090/msg'); }, 60000);
+};
+webSocket.onerror = function (errorEvent) {
+    console.log("WebSocket ERROR: " + JSON.stringify(errorEvent, null, 4));
+};
+webSocket.onmessage = function (messageEvent) {
+    var wsMsg = messageEvent.data;
+    document.getElementById("incomingMsgOutput").value += "Incoming message: " + messageEvent.data + "\n"
+    console.log("WebSocket MESSAGE: " + wsMsg);
+};
 
-client.on('connect', function(connection) {
-    console.log('WebSocket Client Connected');
-    connection.on('error', function(error) {
-        console.log("Connection Error: " + error.toString());
-    });
-
-    connection.on('close', function() {
-        console.log('echo-protocol Connection Closed');
-    });
-
-    connection.on('message', function(message) {
-        if (message.type === 'utf8') {
-            console.log("Received: '" + message.utf8Data + "'");
-        }
-    });
-
-    sendHostData();
-});
-
-function sendHostData() {
-    var hostData = {
-        hostName="alex"
-    }
-    connection.send(JSON.stringify(hostData));
+function sendMessage() {
+    var message = document.getElementById("matricula").value;
+    document.getElementById("incomingMsgOutput").value += "Output message: " +  message + "\n"
+    webSocket.send(message);
 }
-
-client.connect('ws://localhost:8080/', 'echo-protocol');
